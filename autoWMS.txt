@@ -1,0 +1,40 @@
+:local iDebug "true"
+:local iFace "wlan1"
+:local gwId "WAG-D5-KBL"
+:local wlanId "KDPAE00005-N/TLK-CI-43859"
+#USERNAME#
+:local userId "bakso"
+#PASSWORD#
+:local passId "saputra"
+
+:local CheckMainISP [/ping 8.8.8.8 count=3];
+:if ($CheckMainISP>0) do={
+ :log warning "PING $CheckMainISP - OK - Internet Connected...";
+} else {
+ :log error "PING - Time Out - Running PING Test Again...";
+ :local ping2 [/ping 8.8.8.8 count=3];
+ :if ($ping2>0) do={
+  :log warning "PING $ping2 - OK - Internet Connected...";
+ } else {
+  :log error ("PING - Time Out - Internet Disconnected...");
+  :log warning ("Trying To Connect");
+  /ip dns cache flush
+  /ip dhcp-client release [find interface=$iFace];
+  :delay 4
+  :log warning ("Trying To Fetch");
+  :local ipAdd [/ip address get [/ip address find interface=$iFace] address];
+  :local ipAddr [put [:pick $ipAdd 0 [:find $ipAdd "/"]]];
+  :local macAddr [/interface wireless get [find default-name=$iFace] mac-address];
+  :local iUrl ("https://welcome2.wifi.id/wms/auth/authnew/autologin/quarantine.php\?ipc=$ipAddr&gw_id=$gwId&mac=$macAddr&redirect=&wlan=$wlanId&landURL=&username_=$userId&username=$userId.1QWl@freeMS&password=$passId")
+  /tool fetch http-method=post http-header-field="user-agent: Mozilla/5.0" url="$iUrl" dst-path=wms.txt
+  :delay 2
+  :if ($iDebug = "true") do={
+   :local iRes [/file get wms.txt contents];
+   :log warning $iRes
+   :file remove wms.txt
+  } else={
+   :file remove wms.txt};
+  }
+  :log warning ("Fetching Done...");
+  :log warning ("Script AutoWMS By Adin..");
+}
